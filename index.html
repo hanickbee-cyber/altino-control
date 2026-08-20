@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>알티노 자율주행 코딩 플랫폼</title>
-    <!-- PyScript 라이브러리 불러오기 -->
-    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <!-- PyScript 라이브러리 불러오기 (안정적인 버전으로 고정) -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2023.05.1/pyscript.css" />
+    <script defer src="https://pyscript.net/releases/2023.05.1/pyscript.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
         .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -27,7 +27,7 @@
             사용 가능 함수: <code>go(좌, 우)</code>, <code>steering(각도)</code>, <code>stop()</code>
         </p>
         
-        <!-- 백그라운드 파이썬 세팅 (JS 함수를 파이썬 함수로 변환) -->
+        <!-- 백그라운드 파이썬 세팅 -->
         <py-script>
 import js
 
@@ -41,17 +41,17 @@ def stop():
     js.stop()
         </py-script>
 
-        <!-- 학생용 대화형 입력창 -->
+        <!-- 학생용 대화형 입력창 (줄바꿈/들여쓰기 유지 필수!) -->
         <py-repl id="my-repl" auto-generate="true">
-# 로봇을 1초 동안 앞으로 이동시킨 후 정지하는 예제
 import asyncio
+import pyscript
 
+# 로봇을 1초 동안 앞으로 이동시킨 후 정지하는 예제
 async def main():
     go(300, 300)
-    await asyncio.sleep(1) # PyScript에서는 딜레이로 asyncio.sleep 사용
+    await asyncio.sleep(1)
     stop()
 
-import pyscript
 pyscript.run_until_complete(main())
         </py-repl>
     </div>
@@ -66,13 +66,11 @@ pyscript.run_until_complete(main())
                 document.getElementById('status').innerText = "장치 검색 중...";
                 const device = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
-                    // 알티노 라이트의 정확한 Service UUID
                     optionalServices: ['49535343-fe7d-4ae5-8fa9-9fafd205e455']
                 });
                 const server = await device.gatt.connect();
                 const service = await server.getPrimaryService('49535343-fe7d-4ae5-8fa9-9fafd205e455');
                 
-                // ISSC 칩셋 범용 송신(TX) Characteristic UUID
                 txCharacteristic = await service.getCharacteristic('49535343-8841-43f4-a8d4-ecbe34729bb3');
                 
                 document.getElementById('status').innerText = "상태: 기기 연결 성공! (" + device.name + ")";
