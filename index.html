@@ -2,44 +2,119 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>로봇 웹 제어기</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>알티노 라이트 웹 제어기</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        button { padding: 12px 24px; font-size: 16px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-connect { background-color: #4CAF50; color: white; }
+        .btn-stop { background-color: #f44336; color: white; }
+        .btn-dir { background-color: #2196F3; color: white; width: 80px; height: 50px; font-size: 18px; }
+        .status { font-weight: bold; color: #555; margin-top: 15px; }
+    </style>
 </head>
 <body>
-    <button id="connectBtn">블루투스 연결하기</button>
-    <button id="goBtn">앞으로 가기 (테스트)</button>
 
-    <script>
-        let myCharacteristic;
+<div class="card">
+    <h2>🚘 알티노 라이트 제어</h2>
+    <button class="btn-connect" onclick="connectBT()">블루투스 연결</button>
+    <div id="status" class="status">상태: 연결되지 않음</div>
 
-        // 1. 블루투스 연결 함수
-        document.getElementById('connectBtn').addEventListener('click', async () => {
-            try {
-                // 주의: 기기의 실제 Service UUID와 Characteristic UUID를 알아야 합니다.
-                const device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb'] // 예시 UUID
-                });
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
-                myCharacteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
-                alert('연결 성공!');
-            } catch (error) {
-                console.error('연결 에러:', error);
-            }
-        });
+    <hr style="margin: 20px 0;">
 
-        // 2. 데이터 전송 함수 (파이썬의 tx_d 배열 전송)
-        document.getElementById('goBtn').addEventListener('click', async () => {
-            if (!myCharacteristic) {
-                alert('먼저 블루투스를 연결해주세요.');
-                return;
-            }
-            // 파이썬의 리스트를 자바스크립트의 Uint8Array(바이트 배열)로 변환
-            let tx_d = new Uint8Array([2, 22, 35, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
+    <div>
+        <button class="btn-dir" onclick="go(300, 300)">전진</button><br>
+        <button class="btn-dir" onclick="steering(-50)">좌회전</button>
+        <button class="btn-stop" onclick="stop()">정지</button>
+        <button class="btn-dir" onclick="steering(50)">우회전</button><br>
+        <button class="btn-dir" onclick="go(-300, -300)">후진</button>
+    </div>
+</div>
+
+<script>
+    let bluetoothDevice;
+    let txCharacteristic;
+
+    // 파이썬의 tx_d 기본 배열 (22 Bytes)
+    let tx_d = new Uint8Array([2, 22, 35, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
+
+    // 1. 블루투스 연결 (BLE)
+    async function connectBT() {
+        try {
+            document.getElementById('status').innerText = "장치 검색 중...";
             
-            // 데이터 전송
-            await myCharacteristic.writeValue(tx_d);
-        });
-    </script>
+            // 알티노 라이트의 BLE 서비스 UUID 검색 (투명 시리얼 통신 표준/알티노 전용 UUID)
+            bluetoothDevice = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: [
+                    '0000ffe0-0000-1000-8000-00805f9b34fb', // 일반적인 BLE 시리얼 UUID
+                    '0000ffe1-0000-1000-8000-00805f9b34fb'
+                ]
+            });
+
+            const server = await bluetoothDevice.gatt.connect();
+            
+            // 서비스 및 특성(Characteristic) 가져오기
+            const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+            txCharacteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+
+            document.getElementById('status').innerText = "상태: 연결됨 (" + bluetoothDevice.name + ")";
+            document.getElementById('status').style.color = "green";
+        } catch (error) {
+            console.error(error);
+            document.getElementById('status').innerText = "연결 실패: " + error.message;
+            document.getElementById('status').style.color = "red";
+        }
+    }
+
+    // 2. 체크섬 계산 및 데이터 송신 (파이썬의 check() 함수 구현)
+    async function sendPacket() {
+        if (!txCharacteristic) return;
+
+        // 파이썬 코드의 체크섬 계산 로직: 3~20번 인덱스 합의 % 256
+        let sum = 0;
+        for (let i = 3; i < 21; i++) {
+            sum += tx_d[i];
+        }
+        tx_d[2] = sum % 256; // 체크섬 저장
+
+        // BLE를 통해 데이터 전송
+        await txCharacteristic.writeValue(tx_d);
+    }
+
+    // 3. 모터 제어 (파이썬의 Go() 함수 구현)
+    function go(left, right) {
+        left = Math.max(-1000, Math.min(1000, left));
+        right = Math.max(-1000, Math.min(1000, right));
+
+        if (right < 0) right = (-right) ^ 0xffff;
+        tx_d[6] = Math.floor(right / 256);
+        tx_d[7] = Math.floor(right % 256);
+
+        if (left < 0) left = (-left) ^ 0xffff;
+        tx_d[8] = Math.floor(left / 256);
+        tx_d[9] = Math.floor(left % 256);
+
+        sendPacket();
+    }
+
+    // 4. 조향 제어 (파이썬의 Steering() 함수 구현)
+    function steering(st) {
+        st = Math.max(-127, Math.min(127, st));
+        if (st >= 0) {
+            tx_d[5] = st;
+        } else {
+            tx_d[5] = (-st) ^ 0xff;
+        }
+        sendPacket();
+    }
+
+    // 5. 정지 (파이썬의 Stop() 함수 구현)
+    function stop() {
+        go(0, 0);
+        steering(0);
+    }
+</script>
 </body>
 </html>
