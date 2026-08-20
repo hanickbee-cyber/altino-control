@@ -2,120 +2,127 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>알티노 라이트 웹 제어기</title>
+    <title>알티노 자율주행 코딩 플랫폼</title>
+    <!-- PyScript 라이브러리 불러오기 -->
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
-        button { padding: 12px 24px; font-size: 16px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; }
-        .btn-connect { background-color: #4CAF50; color: white; }
-        .btn-stop { background-color: #f44336; color: white; }
-        .btn-dir { background-color: #2196F3; color: white; width: 80px; height: 50px; font-size: 18px; }
-        .status { font-weight: bold; color: #555; margin-top: 15px; }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .btn { padding: 12px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;}
+        .btn:hover { background: #218838; }
+        #status { margin-top: 10px; font-weight: bold; color: #555; }
+        code { background: #eee; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h2>🚘 알티노 라이트 파이썬 코딩</h2>
+        <button class="btn" onclick="connectBT()">1. 블루투스 연결하기</button>
+        <div id="status">상태: 연결되지 않음</div>
+        <hr>
+        
+        <h3>2. 파이썬 코드 입력 (Shift + Enter로 실행)</h3>
+        <p style="color:gray; font-size:14px;">
+            사용 가능 함수: <code>go(좌, 우)</code>, <code>steering(각도)</code>, <code>stop()</code>
+        </p>
+        
+        <!-- 백그라운드 파이썬 세팅 (JS 함수를 파이썬 함수로 변환) -->
+        <py-script>
+import js
 
-<div class="card">
-    <h2>🚘 알티노 라이트 제어</h2>
-    <button class="btn-connect" onclick="connectBT()">블루투스 연결</button>
-    <div id="status" class="status">상태: 연결되지 않음</div>
+def go(left, right):
+    js.go(left, right)
 
-    <hr style="margin: 20px 0;">
+def steering(st):
+    js.steering(st)
 
-    <div>
-        <button class="btn-dir" onclick="go(300, 300)">전진</button><br>
-        <button class="btn-dir" onclick="steering(-50)">좌회전</button>
-        <button class="btn-stop" onclick="stop()">정지</button>
-        <button class="btn-dir" onclick="steering(50)">우회전</button><br>
-        <button class="btn-dir" onclick="go(-300, -300)">후진</button>
+def stop():
+    js.stop()
+        </py-script>
+
+        <!-- 학생용 대화형 입력창 -->
+        <py-repl id="my-repl" auto-generate="true">
+# 로봇을 1초 동안 앞으로 이동시킨 후 정지하는 예제
+import asyncio
+
+async def main():
+    go(300, 300)
+    await asyncio.sleep(1) # PyScript에서는 딜레이로 asyncio.sleep 사용
+    stop()
+
+import pyscript
+pyscript.run_until_complete(main())
+        </py-repl>
     </div>
-</div>
 
-<script>
-    let bluetoothDevice;
-    let txCharacteristic;
+    <!-- 블루투스 통신 및 제어 알고리즘 (자바스크립트) -->
+    <script>
+        let txCharacteristic;
+        let tx_d = new Uint8Array([2, 22, 35, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
 
-    // 파이썬의 tx_d 기본 배열 (22 Bytes)
-    let tx_d = new Uint8Array([2, 22, 35, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
+        window.connectBT = async function() {
+            try {
+                document.getElementById('status').innerText = "장치 검색 중...";
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    // 알티노 라이트의 정확한 Service UUID
+                    optionalServices: ['49535343-fe7d-4ae5-8fa9-9fafd205e455']
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('49535343-fe7d-4ae5-8fa9-9fafd205e455');
+                
+                // ISSC 칩셋 범용 송신(TX) Characteristic UUID
+                txCharacteristic = await service.getCharacteristic('49535343-8841-43f4-a8d4-ecbe34729bb3');
+                
+                document.getElementById('status').innerText = "상태: 기기 연결 성공! (" + device.name + ")";
+                document.getElementById('status').style.color = "blue";
+            } catch (error) {
+                console.error("연결 에러:", error);
+                document.getElementById('status').innerText = "연결 실패: " + error.message;
+                document.getElementById('status').style.color = "red";
+            }
+        };
 
-    // 1. 블루투스 연결 (BLE)
-    // (기존 코드 덮어쓰기)
-    window.connectBT = async function() {
-        try {
-            document.getElementById('status').innerText = "장치 검색 중...";
-        
-        // 1. optionalServices에 우리가 찾은 Service UUID를 넣습니다.
-            const device = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: ['49535343-fe7d-4ae5-8fa9-9fafd205e455'] 
-            });
-        
-            const server = await device.gatt.connect();
-        
-        // 2. 해당 Service에 접근합니다.
-            const service = await server.getPrimaryService('49535343-fe7d-4ae5-8fa9-9fafd205e455');
-        
-        // 3. 데이터를 쓸 Characteristic(특성)에 접근합니다. 
-        // (ISSC 칩셋 기본 송신 UUID 적용)
-            txCharacteristic = await service.getCharacteristic('49535343-8841-43f4-a8d4-ecbe34729bb3');
-        
-            document.getElementById('status').innerText = "상태: 기기 연결 성공! (" + device.name + ")";
-            document.getElementById('status').style.color = "blue";
-        } catch (error) {
-            console.error("연결 에러:", error);
-            document.getElementById('status').innerText = "연결 실패: " + error.message;
-            document.getElementById('status').style.color = "red";
-        }
-    };
+        window.sendPacket = async function() {
+            if (!txCharacteristic) return;
+            let sum = 0;
+            for (let i = 3; i < 21; i++) {
+                sum += tx_d[i];
+            }
+            tx_d[2] = sum % 256; 
+            await txCharacteristic.writeValue(tx_d);
+        };
 
-    // 2. 체크섬 계산 및 데이터 송신 (파이썬의 check() 함수 구현)
-    async function sendPacket() {
-        if (!txCharacteristic) return;
+        window.go = function(left, right) {
+            left = Math.max(-1000, Math.min(1000, left));
+            right = Math.max(-1000, Math.min(1000, right));
 
-        // 파이썬 코드의 체크섬 계산 로직: 3~20번 인덱스 합의 % 256
-        let sum = 0;
-        for (let i = 3; i < 21; i++) {
-            sum += tx_d[i];
-        }
-        tx_d[2] = sum % 256; // 체크섬 저장
+            if (right < 0) right = (-right) ^ 0xffff;
+            tx_d[6] = Math.floor(right / 256);
+            tx_d[7] = Math.floor(right % 256);
 
-        // BLE를 통해 데이터 전송
-        await txCharacteristic.writeValue(tx_d);
-    }
+            if (left < 0) left = (-left) ^ 0xffff;
+            tx_d[8] = Math.floor(left / 256);
+            tx_d[9] = Math.floor(left % 256);
 
-    // 3. 모터 제어 (파이썬의 Go() 함수 구현)
-    function go(left, right) {
-        left = Math.max(-1000, Math.min(1000, left));
-        right = Math.max(-1000, Math.min(1000, right));
+            window.sendPacket();
+        };
 
-        if (right < 0) right = (-right) ^ 0xffff;
-        tx_d[6] = Math.floor(right / 256);
-        tx_d[7] = Math.floor(right % 256);
+        window.steering = function(st) {
+            st = Math.max(-127, Math.min(127, st));
+            if (st >= 0) {
+                tx_d[5] = st;
+            } else {
+                tx_d[5] = (-st) ^ 0xff;
+            }
+            window.sendPacket();
+        };
 
-        if (left < 0) left = (-left) ^ 0xffff;
-        tx_d[8] = Math.floor(left / 256);
-        tx_d[9] = Math.floor(left % 256);
-
-        sendPacket();
-    }
-
-    // 4. 조향 제어 (파이썬의 Steering() 함수 구현)
-    function steering(st) {
-        st = Math.max(-127, Math.min(127, st));
-        if (st >= 0) {
-            tx_d[5] = st;
-        } else {
-            tx_d[5] = (-st) ^ 0xff;
-        }
-        sendPacket();
-    }
-
-    // 5. 정지 (파이썬의 Stop() 함수 구현)
-    function stop() {
-        go(0, 0);
-        steering(0);
-    }
-</script>
+        window.stop = function() {
+            window.go(0, 0);
+            window.steering(0);
+        };
+    </script>
 </body>
 </html>
