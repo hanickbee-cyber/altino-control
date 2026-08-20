@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>알티노 자율주행 코딩 플랫폼</title>
-    <!-- PyScript 라이브러리 불러오기 (안정적인 버전으로 고정) -->
     <link rel="stylesheet" href="https://pyscript.net/releases/2023.05.1/pyscript.css" />
     <script defer src="https://pyscript.net/releases/2023.05.1/pyscript.js"></script>
     <style>
@@ -11,14 +10,30 @@
         .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .btn { padding: 12px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;}
         .btn:hover { background: #218838; }
+        .btn-run { background: #ff9800; width: 100%; font-size: 18px; margin-top: 10px; }
+        .btn-run:hover { background: #e68a00; }
         #status { margin-top: 10px; font-weight: bold; color: #555; }
         code { background: #eee; padding: 2px 6px; border-radius: 4px; }
         
-        /* 조종기 버튼 디자인 추가 */
+        /* 조종기 및 에디터 디자인 */
         .control-panel { text-align: center; background-color: #f1f3f5; padding: 15px; border-radius: 8px; margin: 20px 0; }
         .btn-stop { background-color: #f44336; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 5px; font-weight: bold;}
         .btn-dir { background-color: #2196F3; color: white; width: 80px; height: 50px; font-size: 18px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-weight: bold;}
-        .btn-dir:active { background-color: #0b7dda; }
+        
+        /* 학생용 코드 에디터 스타일 */
+        #student-code {
+            width: 100%;
+            height: 250px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            padding: 15px;
+            border-radius: 8px;
+            box-sizing: border-box;
+            line-height: 1.5;
+            resize: vertical;
+        }
     </style>
 </head>
 <body>
@@ -27,7 +42,6 @@
         <button class="btn" onclick="connectBT()">1. 블루투스 연결하기</button>
         <div id="status">상태: 연결되지 않음</div>
         
-        <!-- 테스트 조종기 영역 -->
         <div class="control-panel">
             <h4 style="margin-top: 0; color: #555;">[사전 테스트 조종기]</h4>
             <button class="btn-dir" onclick="go(300, 300)">전진</button><br>
@@ -36,45 +50,74 @@
             <button class="btn-dir" onclick="steering(50)">우회전</button><br>
             <button class="btn-dir" onclick="go(-300, -300)">후진</button>
         </div>
-
         <hr>
         
-        <h3>2. 파이썬 코드 입력 (Shift + Enter로 실행)</h3>
+        <h3>2. 파이썬 자율주행 코딩</h3>
         <p style="color:gray; font-size:14px;">
-            사용 가능 함수: <code>go(좌, 우)</code>, <code>steering(각도)</code>, <code>stop()</code>
+            명령어: <code>go(좌, 우)</code>, <code>steering(각도)</code>, <code>stop()</code>, <code>await delay(초)</code>
         </p>
         
-        <!-- 백그라운드 파이썬 세팅 -->
+        <!-- 학생용 코드 에디터 (textarea 활용) -->
+        <textarea id="student-code" spellcheck="false">
+# 로봇을 1초 동안 앞으로 이동시킨 후 정지합니다.
+go(300, 300)
+await delay(1)
+stop()
+</textarea>
+        <!-- 실행 버튼 (py-click으로 파이썬 함수 연결) -->
+        <button class="btn btn-run" py-click="execute_code()">▶ 작성한 코드 실행하기</button>
+        
+        <!-- 백그라운드 파이썬 시스템 -->
         <py-script>
 import js
-
-def go(left, right):
-    js.go(left, right)
-
-def steering(st):
-    js.steering(st)
-
-def stop():
-    js.stop()
-        </py-script>
-
-        <!-- 학생용 대화형 입력창 (줄바꿈/들여쓰기 유지 필수!) -->
-        <py-repl id="my-repl" auto-generate="true">
 import asyncio
-import pyscript
 
-# 로봇을 1초 동안 앞으로 이동시킨 후 정지하는 예제
-async def main():
-    go(300, 300)
-    await asyncio.sleep(1)
-    stop()
+def go(left, right): js.go(left, right)
+def steering(st): js.steering(st)
+def stop(): js.stop()
 
-pyscript.run_until_complete(main())
-        </py-repl>
+# 학생들을 위한 직관적인 딜레이 함수
+async def delay(sec):
+    await asyncio.sleep(sec)
+
+# '실행하기' 버튼을 누르면 작동하는 함수
+def execute_code(*args):
+    # 1. textarea에서 학생이 쓴 텍스트 가져오기
+    raw_code = js.document.getElementById('student-code').value
+    
+    # 2. 백그라운드에서 async 함수 형태로 자동 감싸기 (들여쓰기 4칸 적용)
+    indented_code = "\n".join(["    " + line for line in raw_code.split("\n")])
+    wrapper_code = f"async def _student_main():\n{indented_code}"
+    
+    # 3. 사용할 함수들을 모아둔 가상 환경 만들기
+    local_env = {
+        'go': go, 'steering': steering, 'stop': stop,
+        'delay': delay, 'asyncio': asyncio
+    }
+    
+    # 4. 문법 오류 체크 및 동적 실행
+    try:
+        exec(wrapper_code, local_env, local_env)
+        asyncio.ensure_future(local_env['_student_main']())
+    except Exception as e:
+        # 오류 발생 시 브라우저 경고창으로 알려줌
+        js.alert(f"코드에 오류가 있습니다!\n\n{e}")
+        </py-script>
     </div>
 
     <!-- 블루투스 통신 및 제어 알고리즘 (자바스크립트) -->
     <script>
+        // 에디터에서 Tab 키를 누를 때 4칸 띄어쓰기가 되도록 하는 편의 기능
+        document.getElementById('student-code').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                let start = this.selectionStart;
+                let end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+            }
+        });
+
         let txCharacteristic;
         let tx_d = new Uint8Array([2, 22, 35, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
 
