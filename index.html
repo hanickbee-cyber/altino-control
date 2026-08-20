@@ -40,33 +40,34 @@
     let tx_d = new Uint8Array([2, 22, 35, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
 
     // 1. 블루투스 연결 (BLE)
-    async function connectBT() {
+    // (기존 코드 덮어쓰기)
+    window.connectBT = async function() {
         try {
             document.getElementById('status').innerText = "장치 검색 중...";
-            
-            // 알티노 라이트의 BLE 서비스 UUID 검색 (투명 시리얼 통신 표준/알티노 전용 UUID)
-            bluetoothDevice = await navigator.bluetooth.requestDevice({
+        
+        // 1. optionalServices에 우리가 찾은 Service UUID를 넣습니다.
+            const device = await navigator.bluetooth.requestDevice({
                 acceptAllDevices: true,
-                optionalServices: [
-                    '0000ffe0-0000-1000-8000-00805f9b34fb', // 일반적인 BLE 시리얼 UUID
-                    '0000ffe1-0000-1000-8000-00805f9b34fb'
-                ]
+                optionalServices: ['49535343-fe7d-4ae5-8fa9-9fafd205e455'] 
             });
-
-            const server = await bluetoothDevice.gatt.connect();
-            
-            // 서비스 및 특성(Characteristic) 가져오기
-            const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
-            txCharacteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
-
-            document.getElementById('status').innerText = "상태: 연결됨 (" + bluetoothDevice.name + ")";
-            document.getElementById('status').style.color = "green";
+        
+            const server = await device.gatt.connect();
+        
+        // 2. 해당 Service에 접근합니다.
+            const service = await server.getPrimaryService('49535343-fe7d-4ae5-8fa9-9fafd205e455');
+        
+        // 3. 데이터를 쓸 Characteristic(특성)에 접근합니다. 
+        // (ISSC 칩셋 기본 송신 UUID 적용)
+            txCharacteristic = await service.getCharacteristic('49535343-8841-43f4-a8d4-ecbe34729bb3');
+        
+            document.getElementById('status').innerText = "상태: 기기 연결 성공! (" + device.name + ")";
+            document.getElementById('status').style.color = "blue";
         } catch (error) {
-            console.error(error);
+            console.error("연결 에러:", error);
             document.getElementById('status').innerText = "연결 실패: " + error.message;
             document.getElementById('status').style.color = "red";
         }
-    }
+    };
 
     // 2. 체크섬 계산 및 데이터 송신 (파이썬의 check() 함수 구현)
     async function sendPacket() {
