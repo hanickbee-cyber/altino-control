@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>로봇 웹 제어기</title>
+</head>
+<body>
+    <button id="connectBtn">블루투스 연결하기</button>
+    <button id="goBtn">앞으로 가기 (테스트)</button>
+
+    <script>
+        let myCharacteristic;
+
+        // 1. 블루투스 연결 함수
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            try {
+                // 주의: 기기의 실제 Service UUID와 Characteristic UUID를 알아야 합니다.
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb'] // 예시 UUID
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+                myCharacteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+                alert('연결 성공!');
+            } catch (error) {
+                console.error('연결 에러:', error);
+            }
+        });
+
+        // 2. 데이터 전송 함수 (파이썬의 tx_d 배열 전송)
+        document.getElementById('goBtn').addEventListener('click', async () => {
+            if (!myCharacteristic) {
+                alert('먼저 블루투스를 연결해주세요.');
+                return;
+            }
+            // 파이썬의 리스트를 자바스크립트의 Uint8Array(바이트 배열)로 변환
+            let tx_d = new Uint8Array([2, 22, 35, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
+            
+            // 데이터 전송
+            await myCharacteristic.writeValue(tx_d);
+        });
+    </script>
+</body>
+</html>
