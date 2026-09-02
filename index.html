@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>알티노 자율주행 코딩 플랫폼</title>
+    <title>알티노 자율주행 코딩 플랫폼 (Full Version)</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2023.05.1/pyscript.css" />
     <script defer src="https://pyscript.net/releases/2023.05.1/pyscript.js"></script>
     <style>
@@ -12,102 +12,135 @@
         .btn:hover { background: #218838; }
         .btn-run { background: #ff9800; width: 100%; font-size: 18px; margin-top: 10px; }
         .btn-run:hover { background: #e68a00; }
-        #status { margin-top: 10px; font-weight: bold; color: #555; }
-        code { background: #eee; padding: 2px 6px; border-radius: 4px; }
-        
-        /* 조종기 및 에디터 디자인 */
+        #status, #sensor-val { margin-top: 10px; font-weight: bold; color: #555; }
+        #sensor-panel { background-color: #e9ecef; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 14px;}
+        code { background: #eee; padding: 2px 6px; border-radius: 4px; color: #c7254e; }
+
         .control-panel { text-align: center; background-color: #f1f3f5; padding: 15px; border-radius: 8px; margin: 20px 0; }
         .btn-stop { background-color: #f44336; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 5px; font-weight: bold;}
         .btn-dir { background-color: #2196F3; color: white; width: 80px; height: 50px; font-size: 18px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-weight: bold;}
-        
-        /* 학생용 코드 에디터 스타일 */
+        .btn-test { background-color: #6c757d; color: white; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; margin: 5px;}
+
         #student-code {
-            width: 100%;
-            height: 250px;
-            background-color: #1e1e1e;
-            color: #d4d4d4;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 16px;
-            padding: 15px;
-            border-radius: 8px;
-            box-sizing: border-box;
-            line-height: 1.5;
-            resize: vertical;
+            width: 100%; height: 280px; background-color: #1e1e1e; color: #d4d4d4;
+            font-family: 'Courier New', Courier, monospace; font-size: 16px;
+            padding: 15px; border-radius: 8px; box-sizing: border-box; line-height: 1.5;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>🚘 알티노 라이트 파이썬 코딩</h2>
+        <h2>🚘 알티노 라이트 파이썬 코딩 (풀옵션)</h2>
         <button class="btn" onclick="connectBT()">1. 블루투스 연결하기</button>
         <div id="status">상태: 연결되지 않음</div>
         
+        <!-- 실시간 센서값 출력 패널 -->
+        <div id="sensor-panel">
+            📡 <b>실시간 센서 데이터:</b> <span id="sensor-val">블루투스 연결 시 표시됩니다.</span>
+        </div>
+
         <div class="control-panel">
             <h4 style="margin-top: 0; color: #555;">[사전 테스트 조종기]</h4>
-            <button class="btn-dir" onclick="go(300, 300)">전진</button><br>
-            <button class="btn-dir" onclick="steering(-50)">좌회전</button>
-            <button class="btn-stop" onclick="stop()">정지</button>
-            <button class="btn-dir" onclick="steering(50)">우회전</button><br>
-            <button class="btn-dir" onclick="go(-300, -300)">후진</button>
+            <button class="btn-test" onclick="sound(37); setTimeout(() => sound(0), 1000);">경적 소리</button><br>
+            <button class="btn-dir" onclick="go(500, 500)">전진</button><br>
+            <button class="btn-dir" onclick="steering(-120)">좌회전</button>
+            <button class="btn-stop" onclick="stop()">정지<br>(전체꺼짐)</button>
+            <button class="btn-dir" onclick="steering(120)">우회전</button><br>
+            <button class="btn-dir" onclick="go(-500, -500)">후진</button><br>
+            <button class="btn-test" onclick="display('A')">화면(A)</button>
+            <button class="btn-test" onclick="light(255)">라이트 켜기</button>
         </div>
         <hr>
-        
+
         <h3>2. 파이썬 자율주행 코딩</h3>
-        <p style="color:gray; font-size:14px;">
-            명령어: <code>go(좌, 우)</code>, <code>steering(각도)</code>, <code>stop()</code>, <code>await delay(초)</code>
+        <p style="color:gray; font-size:14px; margin-bottom:5px;">
+            <b>구동 명령어:</b> <code>go(좌,우)</code>, <code>steering(각도)</code>, <code>stop()</code>, <code>await delay(초)</code><br>
+            <b>출력 명령어:</b> <code>sound(0~255)</code>, <code>light(비트값)</code>, <code>display('문자' 또는 숫자)</code><br>
+            <b>센서 읽기:</b> <code>sensor.IR[1~6]</code>, <code>sensor.CDS</code>, <code>sensor.BAT</code>
         </p>
-        
-        <!-- 학생용 코드 에디터 (textarea 활용) -->
+
         <textarea id="student-code" spellcheck="false">
-# 로봇을 1초 동안 앞으로 이동시킨 후 정지합니다.
-go(300, 300)
-await delay(1)
-stop()
-</textarea>
-        <!-- 실행 버튼 (py-click으로 파이썬 함수 연결) -->
-        <button class="btn btn-run" py-click="execute_code()">▶ 작성한 코드 실행하기</button>
+# 1. 라이트를 켜고 'GO'라는 의미로 G를 출력합니다.
+light(255)
+display('G')
+await delay(0.5)
+sound(37)
+await delay(0.5)
+sound(0)
+
+# 2. 전방 적외선 센서(IR 2번)를 확인하며 전진합니다.
+while True:
+    go(300, 300)
+    
+    # 앞에 장애물이 감지되면 (값이 50 이상이면)
+    if sensor.IR[2] > 50:
+        stop()
+        display('X')
+        sound(42)
+        await delay(1)
+        break
         
+    await delay(0.1) # 0.1초마다 센서 감시
+    
+stop()
+await delay(0.5)
+sound(0)
+</textarea>
+        <button class="btn btn-run" py-click="execute_code()">▶ 작성한 코드 실행하기</button>
+
         <!-- 백그라운드 파이썬 시스템 -->
         <py-script>
 import js
 import asyncio
 
+# 자바스크립트 함수들을 파이썬으로 연결
 def go(left, right): js.go(left, right)
 def steering(st): js.steering(st)
 def stop(): js.stop()
+def sound(buzzer): js.sound(buzzer)
+def light(led_val): js.light(led_val)
+def led(led_val): js.light(led_val)
+def display(dot): js.display(dot)
+def displayline(d1, d2, d3, d4, d5, d6, d7, d8): js.displayLine(d1, d2, d3, d4, d5, d6, d7, d8)
 
-# 학생들을 위한 직관적인 딜레이 함수
+# 학생들을 위한 딜레이 함수
 async def delay(sec):
     await asyncio.sleep(sec)
 
+# 자바스크립트에서 실시간 갱신되는 센서값을 파이썬에서 읽기 쉽게 객체화
+class SensorData:
+    @property
+    def IR(self):
+        return [0, js.sensor.IR[1], js.sensor.IR[2], js.sensor.IR[3], js.sensor.IR[4], js.sensor.IR[5], js.sensor.IR[6]]
+    @property
+    def CDS(self): return js.sensor.CDS
+    @property
+    def BAT(self): return js.sensor.BAT
+
+sensor = SensorData()
+
 # '실행하기' 버튼을 누르면 작동하는 함수
 def execute_code(*args):
-    # 1. textarea에서 학생이 쓴 텍스트 가져오기
     raw_code = js.document.getElementById('student-code').value
-    
-    # 2. 백그라운드에서 async 함수 형태로 자동 감싸기 (들여쓰기 4칸 적용)
     indented_code = "\n".join(["    " + line for line in raw_code.split("\n")])
     wrapper_code = f"async def _student_main():\n{indented_code}"
-    
-    # 3. 사용할 함수들을 모아둔 가상 환경 만들기
+
     local_env = {
-        'go': go, 'steering': steering, 'stop': stop,
-        'delay': delay, 'asyncio': asyncio
+        'go': go, 'steering': steering, 'stop': stop, 'delay': delay,
+        'sound': sound, 'light': light, 'led': led, 'display': display, 'displayline': displayline,
+        'sensor': sensor, 'asyncio': asyncio
     }
-    
-    # 4. 문법 오류 체크 및 동적 실행
+
     try:
         exec(wrapper_code, local_env, local_env)
         asyncio.ensure_future(local_env['_student_main']())
     except Exception as e:
-        # 오류 발생 시 브라우저 경고창으로 알려줌
         js.alert(f"코드에 오류가 있습니다!\n\n{e}")
         </py-script>
     </div>
 
     <!-- 블루투스 통신 및 제어 알고리즘 (자바스크립트) -->
     <script>
-        // 에디터에서 Tab 키를 누를 때 4칸 띄어쓰기가 되도록 하는 편의 기능
         document.getElementById('student-code').addEventListener('keydown', function(e) {
             if (e.key === 'Tab') {
                 e.preventDefault();
@@ -120,6 +153,10 @@ def execute_code(*args):
 
         let txCharacteristic;
         let tx_d = new Uint8Array([2, 22, 35, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
+        
+        // 센서값을 저장할 자바스크립트 전역 객체
+        window.sensor = { IR: [0,0,0,0,0,0,0], CDS: 0, BAT: 0 };
+        let rx_buffer = []; // 센서 데이터 조립용 버퍼
 
         window.connectBT = async function() {
             try {
@@ -130,9 +167,19 @@ def execute_code(*args):
                 });
                 const server = await device.gatt.connect();
                 const service = await server.getPrimaryService('49535343-fe7d-4ae5-8fa9-9fafd205e455');
-                
+
+                // 명령 송신용(TX) 특징 연결
                 txCharacteristic = await service.getCharacteristic('49535343-8841-43f4-a8d4-ecbe34729bb3');
-                
+
+                // 센서 수신용(RX) 특징 연결 및 알림 시작
+                try {
+                    const rxCharacteristic = await service.getCharacteristic('49535343-1e4d-4bd9-ba61-23c647249616');
+                    await rxCharacteristic.startNotifications();
+                    rxCharacteristic.addEventListener('characteristicvaluechanged', handleSensorData);
+                } catch(err) {
+                    console.warn("수신(RX) 기능을 지원하지 않는 기기거나 권한이 없습니다. 조종만 가능합니다.");
+                }
+
                 document.getElementById('status').innerText = "상태: 기기 연결 성공! (" + device.name + ")";
                 document.getElementById('status').style.color = "blue";
             } catch (error) {
@@ -141,6 +188,42 @@ def execute_code(*args):
                 document.getElementById('status').style.color = "red";
             }
         };
+
+        // 센서 데이터 수신 및 파싱 함수
+        function handleSensorData(event) {
+            const value = event.target.value;
+            for (let i = 0; i < value.byteLength; i++) {
+                rx_buffer.push(value.getUint8(i));
+            }
+            
+            // 22바이트 패킷이 다 모였는지 확인
+            while (rx_buffer.length >= 22) {
+                // 패킷의 시작(2)과 끝(3) 확인
+                if (rx_buffer[0] === 2 && rx_buffer[21] === 3 && rx_buffer[1] === 22) {
+                    let sum = 0;
+                    for (let i = 3; i < 21; i++) sum += rx_buffer[i];
+                    
+                    // 체크섬 검증
+                    if (sum % 256 === rx_buffer[2]) {
+                        window.sensor.IR[1] = (rx_buffer[5] * 256) + rx_buffer[6];
+                        window.sensor.IR[2] = (rx_buffer[7] * 256) + rx_buffer[8];
+                        window.sensor.IR[3] = (rx_buffer[9] * 256) + rx_buffer[10];
+                        window.sensor.IR[4] = (rx_buffer[11] * 256) + rx_buffer[12];
+                        window.sensor.IR[5] = (rx_buffer[13] * 256) + rx_buffer[14];
+                        window.sensor.IR[6] = (rx_buffer[15] * 256) + rx_buffer[16];
+                        window.sensor.CDS = (rx_buffer[17] * 256) + rx_buffer[18];
+                        window.sensor.BAT = (rx_buffer[19] * 256) + rx_buffer[20];
+                        
+                        // 화면에 표시
+                        document.getElementById('sensor-val').innerText = 
+                            `전방IR(2): ${window.sensor.IR[2]} | 조도(CDS): ${window.sensor.CDS} | 배터리: ${window.sensor.BAT}`;
+                    }
+                    rx_buffer.splice(0, 22); // 파싱 완료된 패킷 삭제
+                } else {
+                    rx_buffer.shift(); // 데이터가 꼬였을 경우 1바이트씩 버리면서 시작점 찾기
+                }
+            }
+        }
 
         window.sendPacket = async function() {
             if (!txCharacteristic) return;
@@ -152,34 +235,60 @@ def execute_code(*args):
             await txCharacteristic.writeValue(tx_d);
         };
 
+        // 기존 구동 함수
         window.go = function(left, right) {
             left = Math.max(-1000, Math.min(1000, left));
             right = Math.max(-1000, Math.min(1000, right));
-
             if (right < 0) right = (-right) ^ 0xffff;
-            tx_d[6] = Math.floor(right / 256);
-            tx_d[7] = Math.floor(right % 256);
-
+            tx_d[6] = Math.floor(right / 256); tx_d[7] = Math.floor(right % 256);
             if (left < 0) left = (-left) ^ 0xffff;
-            tx_d[8] = Math.floor(left / 256);
-            tx_d[9] = Math.floor(left % 256);
-
+            tx_d[8] = Math.floor(left / 256); tx_d[9] = Math.floor(left % 256);
             window.sendPacket();
         };
 
         window.steering = function(st) {
             st = Math.max(-127, Math.min(127, st));
-            if (st >= 0) {
-                tx_d[5] = st;
+            tx_d[5] = (st >= 0) ? st : (-st) ^ 0xff;
+            window.sendPacket();
+        };
+
+        // 💡 새롭게 추가된 제어 함수들 (파이썬 코드 구조 100% 반영)
+        window.sound = function(buzzer) {
+            tx_d[19] = Math.max(0, Math.min(255, buzzer));
+            window.sendPacket();
+        };
+
+        window.light = function(led) {
+            tx_d[20] = led;
+            window.sendPacket();
+        };
+
+        window.display = function(dot) {
+            if (typeof dot === 'number') {
+                tx_d[10] = Math.floor(dot);
+            } else if (typeof dot === 'string' && dot.length > 0) {
+                tx_d[10] = dot.charCodeAt(0);
             } else {
-                tx_d[5] = (-st) ^ 0xff;
+                tx_d[10] = 0;
             }
+            // 디스플레이 매트릭스 초기화
+            for(let i = 11; i <= 18; i++) tx_d[i] = 0;
+            window.sendPacket();
+        };
+
+        window.displayLine = function(dot1, dot2, dot3, d4, d5, d6, d7, d8) {
+            tx_d[10] = 0xff;
+            tx_d[11] = d8; tx_d[12] = d7; tx_d[13] = d6; tx_d[14] = d5;
+            tx_d[15] = d4; tx_d[16] = dot3; tx_d[17] = dot2; tx_d[18] = dot1;
             window.sendPacket();
         };
 
         window.stop = function() {
             window.go(0, 0);
             window.steering(0);
+            window.sound(0);
+            window.display(0);
+            window.light(0);
         };
     </script>
 </body>
