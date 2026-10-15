@@ -58,7 +58,15 @@
         .modal-desc { font-size: 13px; color: #475569; margin: 8px 0 12px 0; line-height: 1.4; }
         .code-container { background: #1e1e1e; border-radius: 8px; padding: 14px; overflow: auto; flex: 1; }
         .code-container pre { margin: 0; }
-        .code-container code { color: #9cdcfe; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; white-space: pre; }
+        .code-container code { 
+            color: #9cdcfe; 
+            font-family: 'Consolas', 'Courier New', monospace; 
+            font-size: 15px; /* 글씨 크기 확대 */
+            white-space: pre; 
+            background: transparent; /* 하얀 배경색 제거 */
+            padding: 0; /* 불필요한 여백 제거 */
+            line-height: 1.6; /* 읽기 편하도록 줄간격 넓힘 */
+        }
         .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
         .btn-copy, .btn-insert { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
         .btn-copy { background-color: #f8fafc; border: 1px solid #cbd5e1; color: #334155; }
