@@ -369,16 +369,24 @@ sp = 300       # 정상 주행 속도
 bsp = -300     # 회피 후진 속도
 
 while True:
+    # [추가된 탈출 조건] 손으로 조도 센서를 가려 값이 50 미만으로 떨어지면
+    if sensor.CDS < 50:
+        stop()                     # 모터 정지
+        sound(100)                 # 종료 알림음 
+        await delay(0.5)
+        sound(0)
+        break                      # 무한 루프 완전히 탈출
+
     # 1. 전방 3개 센서 모두 감지 (막다른 길 진입)
     if sensor.IR[1] > th and sensor.IR[2] > th and sensor.IR[3] > th:
         stop()
         await delay(0.1)
         # 좌우 여유 공간 비교 후 더 트인 쪽으로 후진 탈출
         if sensor.IR[1] > sensor.IR[3]:
-            steering(127)      # 우측으로 틀며 후진
+            steering(127)      
             go(bsp, bsp)
         else:
-            steering(-127)     # 좌측으로 틀며 후진
+            steering(-127)     
             go(bsp, bsp)
         await delay(0.8)
 
